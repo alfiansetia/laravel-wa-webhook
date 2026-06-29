@@ -353,7 +353,13 @@
                     </button>
                     <h5 class="m-0 fw-bold">Chats</h5>
                 </div>
-                <span class="badge bg-secondary rounded-pill" id="chat-count">0</span>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-primary btn-sm rounded-circle" onclick="openCreateChatModal()"
+                        title="Create New Chat">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                    <span class="badge bg-secondary rounded-pill" id="chat-count">0</span>
+                </div>
             </div>
             <div class="panel-body" id="chats-list">
                 <div class="text-center p-5 text-muted">
@@ -741,19 +747,19 @@
                                 html += `
                                     <div class="d-flex align-items-center gap-2 ${isOut ? 'justify-content-end' : 'justify-content-start'} msg-row">
                                         ${isOut ? `
-                                                            <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                                                                <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                                                            </button>
-                                                        ` : ''}
+                                                                                <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                                                                    <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                                                                                </button>
+                                                                            ` : ''}
                                         <div class="msg-bubble ${isOut ? 'msg-outgoing' : 'msg-incoming'}">
                                             ${renderMessageBody(msg)}
                                             <div class="msg-time">${formatHour(msg.created_at)}</div>
                                         </div>
                                         ${!isOut ? `
-                                                            <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                                                                <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                                                            </button>
-                                                        ` : ''}
+                                                                                <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                                                                    <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                                                                                </button>
+                                                                            ` : ''}
                                     </div>`;
                             });
                             container.innerHTML = html;
@@ -808,7 +814,7 @@
                 }
 
                 container.innerHTML = chats.map(chat => `
-                    <div class="list-item ${window.__activeChatId == chat.id ? 'active' : ''}" onclick="selectChat(${chat.id}, this)">
+                    <div class="list-item ${window.__activeChatId == chat.id ? 'active' : ''}" data-chat-id="${chat.chat_id}" onclick="selectChat(${chat.id}, this)">
                         <div class="avatar-circle" style="background: ${getAvatarColor(chat.user_name)}; width:38px; height:38px; font-size:0.95rem;">
                             ${getInitials(chat.user_name)}
                         </div>
@@ -897,19 +903,19 @@
                     html += `
                         <div class="d-flex align-items-center gap-2 ${isOut ? 'justify-content-end' : 'justify-content-start'} msg-row">
                             ${isOut ? `
-                                                <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                                                    <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                                                </button>
-                                            ` : ''}
+                                                                    <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                                                        <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                                                                    </button>
+                                                                ` : ''}
                             <div class="msg-bubble ${isOut ? 'msg-outgoing' : 'msg-incoming'}">
                                 ${renderMessageBody(msg)}
                                 <div class="msg-time">${formatHour(msg.created_at)}</div>
                             </div>
                             ${!isOut ? `
-                                                <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                                                    <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                                                </button>
-                                            ` : ''}
+                                                                    <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                                                        <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                                                                    </button>
+                                                                ` : ''}
                         </div>`;
                 });
 
@@ -1138,19 +1144,19 @@
                             html += `
                                 <div class="d-flex align-items-center gap-2 ${isOut ? 'justify-content-end' : 'justify-content-start'} msg-row">
                                     ${isOut ? `
-                                                        <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                                                            <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                                                        </button>
-                                                    ` : ''}
+                                                                            <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                                                                <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                                                                            </button>
+                                                                        ` : ''}
                                     <div class="msg-bubble ${isOut ? 'msg-outgoing' : 'msg-incoming'}">
                                         ${renderMessageBody(msg)}
                                         <div class="msg-time">${formatHour(msg.created_at)}</div>
                                     </div>
                                     ${!isOut ? `
-                                                        <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                                                            <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                                                        </button>
-                                                    ` : ''}
+                                                                            <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                                                                <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                                                                            </button>
+                                                                        ` : ''}
                                 </div>`;
                         });
 
@@ -1168,3 +1174,101 @@
 </body>
 
 </html>
+
+<!-- ─── MODAL: CREATE NEW CHAT ─── -->
+<div class="modal fade" id="createChatModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Chat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small">WhatsApp Number / Chat ID</label>
+                    <input type="text" class="form-control" id="chat-id" required
+                        placeholder="e.g. 6281234567890 or 6281234567890@c.us">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Pesan / Initial Message</label>
+                    <textarea class="form-control" id="chat-message" rows="3" required
+                        placeholder="Tulis pesan yang ingin dikirim..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewChat()">Kirim & Buat Chat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ─── CREATE NEW CHAT MODAL ACTIONS ───
+    let activeAccountIdForChat = null;
+    const createChatModal = new bootstrap.Modal(document.getElementById('createChatModal'));
+
+    function openCreateChatModal() {
+        if (!window.__activeAccountId) {
+            alert('Please select an account first from the left panel.');
+            return;
+        }
+        activeAccountIdForChat = window.__activeAccountId;
+        document.getElementById('chat-id').value = '';
+        document.getElementById('chat-message').value = '';
+        createChatModal.show();
+    }
+
+    async function saveNewChat() {
+        const chatId = document.getElementById('chat-id').value.trim();
+        const message = document.getElementById('chat-message').value.trim();
+
+        if (!chatId || !message) {
+            alert('Silakan isi Nomor WhatsApp dan Pesan.');
+            return;
+        }
+
+        if (!activeAccountIdForChat) {
+            alert('No account selected.');
+            return;
+        }
+
+        const btn = document.querySelector('#createChatModal .btn-primary');
+        const originalText = btn.textContent;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Mengirim...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/accounts/${activeAccountIdForChat}/chats`, {
+                method: 'POST',
+                headers: headers(),
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    message: message
+                })
+            });
+
+            const data = await res.json();
+            if (data.status === 'success') {
+                createChatModal.hide();
+                // Wait 1.2s for Webhook to catch & insert chat row in DB
+                setTimeout(async () => {
+                    await loadChats(activeAccountIdForChat);
+                    // Select-click the newly sent chat
+                    const chatItem = document.querySelector(
+                        `#chats-list [data-chat-id="${data.chat_id}"]`);
+                    if (chatItem) {
+                        chatItem.click();
+                    }
+                }, 1200);
+            } else {
+                alert('Error: ' + (data.message || 'Gagal membuat chat'));
+            }
+        } catch (err) {
+            alert('Create chat failed: ' + err.message);
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>

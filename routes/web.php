@@ -15,6 +15,7 @@ Route::prefix('api')->group(function () {
 
     // Chats & Messages
     Route::get('/accounts/{accountId}/chats', [DashboardController::class, 'chats']);
+    Route::post('/accounts/{accountId}/chats', [DashboardController::class, 'createChat']);
     Route::delete('/chats/{id}', [DashboardController::class, 'destroyChat']);
     Route::get('/chats/{chatId}/messages', [DashboardController::class, 'messages']);
     Route::post('/chats/{chatId}/send', [DashboardController::class, 'sendMessage']);

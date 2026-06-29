@@ -81,6 +81,95 @@ class DashboardController extends Controller
         return response()->json(['status' => 'success']);
     }
 
+    public function createChat(Request $request, $accountId)
+    {
+        $validated = $request->validate([
+            'chat_id' => 'required|string',
+            'message' => 'required|string',
+        ]);
+
+        $account = Account::findOrFail($accountId);
+
+        $chatId = $validated['chat_id'];
+        if (!str_contains($chatId, '@')) {
+            $cleanNumber = preg_replace('/[^0-9]/', '', $chatId);
+            if (str_starts_with($cleanNumber, '0')) {
+                $cleanNumber = '62' . substr($cleanNumber, 1);
+            }
+            $chatId = $cleanNumber . '@c.us';
+        }
+
+        $session = $account->waha_session_id;
+        if (empty($session)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'WAHA WhatsApp session ID is not configured for this account. Please update the account config.',
+            ], 400);
+        }
+
+        $baseUrl = $account->base_url;
+        if (empty($baseUrl)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'WAHA Base URL is not configured for this account. Please update the account config first.',
+            ], 400);
+        }
+
+        $apiKey = $account->api_key;
+        if (empty($apiKey)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'WAHA API Key is not configured for this account. Please update the account config first.',
+            ], 400);
+        }
+
+        $messageText = $validated['message'];
+
+        try {
+            $headers = [];
+            if ($apiKey) {
+                $headers['X-Api-Key'] = $apiKey;
+                $headers['Authorization'] = 'Bearer ' . $apiKey;
+            }
+
+            Log::info('Sending initial message to WAHA from createChat (webhook destination)', [
+                'url' => rtrim($baseUrl, '/') . '/api/sendText',
+                'chatId' => $chatId,
+                'session' => $session
+            ]);
+
+            $response = Http::withHeaders($headers)
+                ->timeout(10)
+                ->post(rtrim($baseUrl, '/') . '/api/sendText', [
+                    'chatId' => $chatId,
+                    'text' => $messageText,
+                    'session' => $session,
+                ]);
+
+            if ($response->failed()) {
+                Log::error('WAHA sendText failed during createChat', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to send message: ' . ($response->json('message') ?? $response->body()),
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'chat_id' => $chatId,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('WAHA createChat sendMessage Exception', ['error' => $e->getMessage()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to send message (Internal error): ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function destroyMessage($id)
     {
         $message = Message::findOrFail($id);
@@ -135,15 +224,22 @@ class DashboardController extends Controller
             ], 400);
         }
 
-        $baseUrl = $account->base_url ?? env('WAHA_BASE_URL');
+        $baseUrl = $account->base_url;
         if (empty($baseUrl)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'WAHA Base URL is not configured. Please define a base URL for this account or system env.',
+                'message' => 'WAHA Base URL is not configured for this account. Please update the account config first.',
             ], 400);
         }
 
         $apiKey = $account->api_key;
+        if (empty($apiKey)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'WAHA API Key is not configured for this account. Please update the account config first.',
+            ], 400);
+        }
+
         $text = $request->input('text');
 
         try {
