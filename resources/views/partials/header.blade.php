@@ -3,7 +3,7 @@
     <div class="d-flex align-items-center gap-2">
         <span class="fs-4 text-primary"><i class="bi bi-chat-dots-fill"></i></span>
         <span class="h5 mb-0 fw-bold">WAHA SaaS</span>
-        <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill ms-2">v1.1</span>
+        <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill ms-2">v1.2</span>
     </div>
     <div class="d-flex align-items-center gap-3">
         <!-- Theme Toggler -->
@@ -12,22 +12,35 @@
             <i class="bi bi-sun-fill" id="theme-icon"></i>
         </button>
         <div class="dropdown">
-            <a href="#" class="d-block text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
-                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80"
-                    alt="mdo" width="32" height="32" class="rounded-circle">
+            <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle"
+                data-bs-toggle="dropdown">
+                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold"
+                    style="width:32px; height:32px; font-size: 0.8rem;">
+                    {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                </div>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><span class="dropdown-item-text text-muted small">Logged in as Admin</span></li>
+                <li>
+                    <span class="dropdown-item-text text-muted small">
+                        <i class="bi bi-person-circle me-1"></i>{{ Auth::user()->name }}
+                    </span>
+                </li>
+                <li>
+                    <span class="dropdown-item-text text-muted small" style="font-size: 0.75rem;">
+                        {{ Auth::user()->email }}
+                    </span>
+                </li>
                 <li>
                     <hr class="dropdown-divider">
                 </li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-sliders me-2"></i>Settings</a></li>
                 <li>
-                    <hr class="dropdown-divider">
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="bi bi-box-arrow-right me-2"></i>Sign out
+                        </button>
+                    </form>
                 </li>
-                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Sign
-                        out</a></li>
             </ul>
         </div>
     </div>
