@@ -1,30 +1,51 @@
 version: "3.8"
 
 services:
-    # 1. Kontainer Utama Aplikasi (PHP-FPM)
-    wa_webhook:
-        build: .
-        container_name: wa_webhook
+    # ─────────────────────────────────────────
+    # 1. PHP-FPM Application
+    # ─────────────────────────────────────────
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: wa_webhook_app
         restart: unless-stopped
+        env_file: .env
         volumes:
             - ./:/var/www/html
-            - /var/www/html/vendor # Mengunci vendor hasil build agar tidak tertimpa lokal
+            - vendor_data:/var/www/html/vendor
+            - storage_data:/var/www/html/storage
+            - sqlite_data:/var/www/html/database
         networks:
             - app-network
+        entrypoint: ["/bin/sh", "/var/www/html/docker-entrypoint.sh"]
+        command: ["php-fpm"]
 
-    # 2. Kontainer Nginx Internal Aplikasi
-    wa_webhook_webserver:
+    # ─────────────────────────────────────────
+    # 2. Nginx Web Server
+    # ─────────────────────────────────────────
+    webserver:
         image: nginx:alpine
         container_name: wa_webhook_webserver
         restart: unless-stopped
+        ports:
+            - "${APP_PORT:-8080}:80"
         volumes:
             - ./:/var/www/html
-            - /var/www/html/vendor
+            - vendor_data:/var/www/html/vendor
+            - storage_data:/var/www/html/storage
+            - sqlite_data:/var/www/html/database
             - ./nginx.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - app
         networks:
             - app-network
 
+volumes:
+    vendor_data:
+    storage_data:
+    sqlite_data:
+
 networks:
-    # Menggunakan network eksternal yang sama dengan nginx-shared dan mysql-shared
     app-network:
-        external: true
+        driver: bridge

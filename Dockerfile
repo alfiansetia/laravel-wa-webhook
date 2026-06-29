@@ -33,7 +33,8 @@ COPY . .
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 # Mengatur hak akses kepemilikan folder ke user bawaan php-fpm (www-data)
-RUN chown -R www-data:www-data /var/www/html
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod +x /var/www/html/docker-entrypoint.sh
 
 EXPOSE 9000
 CMD ["php-fpm"]
