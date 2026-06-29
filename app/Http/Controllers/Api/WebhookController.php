@@ -55,19 +55,21 @@ class WebhookController extends Controller
         }
 
         // Determine chat participant
+        // WAHA always uses 'from' as the chat/conversation partner ID regardless of direction
         $isFromMe = $payload['fromMe'] ?? false;
-        $chatId = $isFromMe
-            ? ($payload['to'] ?? null)
-            : ($payload['from'] ?? null);
+        $chatId = $payload['from'] ?? null;
 
         if (!$chatId) {
             return response()->json(['status' => 'error', 'message' => 'Cannot determine chat ID']);
         }
 
         // Determine the participant name (the other person in the chat)
+        // NOWEB engine uses 'pushName', WEBJS uses 'notifyName'
+        $pushName = $payload['_data']['pushName'] ?? $payload['_data']['notifyName'] ?? null;
+
         if (!$isFromMe) {
             // Incoming message: the sender is the other person
-            $participantName = $payload['_data']['notifyName'] ?? $chatId;
+            $participantName = $pushName ?? $chatId;
         } else {
             // Outgoing message: the recipient is the other person.
             // Check if we already have a chat to preserve its name, or default to the chat ID
@@ -88,9 +90,9 @@ class WebhookController extends Controller
             ]
         );
 
-        // Update user_name if we got an incoming message with a proper notifyName
-        if (!$isFromMe && isset($payload['_data']['notifyName']) && $chat->user_name !== $payload['_data']['notifyName']) {
-            $chat->update(['user_name' => $payload['_data']['notifyName']]);
+        // Update user_name if we got an incoming message with a proper contact name
+        if (!$isFromMe && $pushName && $chat->user_name !== $pushName) {
+            $chat->update(['user_name' => $pushName]);
         }
 
         // Determine cleaner body content for database and chat list preview
@@ -125,14 +127,22 @@ class WebhookController extends Controller
         // Update last message preview
         $chat->update(['last_message' => $messageBody]);
 
-        // Store message
-        $message = Message::create([
-            'chat_id' => $chat->id,
-            'message_id' => $payload['id'] ?? uniqid(),
-            'type' => $isFromMe ? 'out' : 'in',
-            'body' => $messageBody,
-            'raw_data' => json_encode($data),
-        ]);
+        // Store message (use firstOrCreate to prevent duplicates from optimistic UI inserts)
+        $messageId = $payload['id'] ?? uniqid();
+        $message = Message::firstOrCreate(
+            ['message_id' => $messageId],
+            [
+                'chat_id' => $chat->id,
+                'type' => $isFromMe ? 'out' : 'in',
+                'body' => $messageBody,
+                'raw_data' => json_encode($data),
+            ]
+        );
+
+        // If message already existed (from optimistic insert), update raw_data with full webhook payload
+        if (!$message->wasRecentlyCreated) {
+            $message->update(['raw_data' => json_encode($data)]);
+        }
 
         return response()->json([
             'status' => 'success',
