@@ -3,7 +3,7 @@
     <div class="panel-header py-2 px-3 border-bottom d-flex align-items-center justify-content-between"
         id="conversation-header" style="display:none !important;">
         <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-outline-secondary btn-sm border-0 d-md-none" onclick="mobileBack('chats')">
+            <button class="btn btn-outline-secondary btn-sm border-0 d-md-none" onclick="goBack('chats')">
                 <i class="bi bi-chevron-left"></i>
             </button>
             <div class="avatar-circle" id="conv-avatar" style="background:#0d6efd;">—</div>

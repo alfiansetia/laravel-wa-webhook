@@ -80,9 +80,10 @@
         return window.innerWidth <= 768;
     }
 
-    function mobileBack(panel) {
+    function goBack(panel) {
         if (panel === 'accounts') {
-            document.querySelector('.panel-chats').classList.remove('slide-active');
+            document.querySelector('.panel-chats').classList.remove('slide-in');
+            document.querySelector('.panel-accounts').classList.remove('slide-out');
         } else if (panel === 'chats') {
             document.querySelector('.panel-conversation').classList.remove('slide-active');
         }
@@ -309,9 +310,9 @@
         document.querySelectorAll('.panel-accounts .list-item').forEach(i => i.classList.remove('active'));
         el?.classList.add('active');
 
-        if (isMobile()) {
-            document.querySelector('.panel-chats').classList.add('slide-active');
-        }
+        // Lakukan slide transition baik di desktop maupun mobile
+        document.querySelector('.panel-accounts').classList.add('slide-out');
+        document.querySelector('.panel-chats').classList.add('slide-in');
 
         document.getElementById('conversation-header').setAttribute('style', 'display: none !important');
         document.getElementById('reply-box').style.display = 'none';

@@ -50,15 +50,50 @@
             transition: transform 0.3s ease, width 0.3s ease;
         }
 
-        /* Desktop widths */
-        .panel-accounts {
-            width: 320px;
-            min-width: 320px;
-        }
-
-        .panel-chats {
+        .sidebar-container {
             width: 340px;
             min-width: 340px;
+            height: 100%;
+            position: relative;
+            border-right: 1px solid var(--bs-border-color);
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: transform 0.3s ease, width 0.3s ease;
+        }
+
+        .sidebar-container .panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-right: none;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-container .panel-accounts {
+            transform: translateX(0);
+            z-index: 2;
+        }
+
+        .sidebar-container .panel-chats {
+            transform: translateX(100%);
+            z-index: 1;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .sidebar-container .panel-accounts.slide-out {
+            transform: translateX(-100%);
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .sidebar-container .panel-chats.slide-in {
+            transform: translateX(0);
+            z-index: 3;
+            visibility: visible;
+            pointer-events: auto;
         }
 
         .panel-conversation {
@@ -210,80 +245,38 @@
             background-color: var(--bs-tertiary-bg);
         }
 
-        /* Responsive UI using Bootstrap grid breakpoints */
-        @media (max-width: 992px) {
-            .panel-accounts {
-                width: 80px;
-                min-width: 80px;
-            }
-
-            .panel-accounts .panel-header h5,
-            .panel-accounts .panel-header button,
-            .panel-accounts .list-item .item-details,
-            .panel-accounts .list-item .item-badge,
-            .panel-accounts .list-item .item-actions {
-                display: none !important;
-            }
-
-            .panel-accounts .list-item {
-                justify-content: center;
-                padding: 0.8rem;
-            }
-
-            .panel-chats {
-                width: 280px;
-                min-width: 280px;
-            }
-        }
-
         @media (max-width: 768px) {
             .app-layout {
                 position: relative;
                 overflow: hidden;
             }
 
-            .panel {
+            .sidebar-container {
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100% !important;
                 min-width: 100% !important;
                 height: 100%;
-                z-index: 1;
-                transform: translateX(100%);
-                visibility: hidden;
-                pointer-events: none;
-            }
-
-            .panel-accounts {
-                transform: translateX(0);
                 z-index: 2;
-                visibility: visible;
-                pointer-events: auto;
-            }
-
-            .panel-accounts .panel-header h5,
-            .panel-accounts .panel-header button,
-            .panel-accounts .list-item .item-details,
-            .panel-accounts .list-item .item-badge,
-            .panel-accounts .list-item .item-actions {
-                display: flex !important;
-            }
-
-            .panel-accounts .list-item {
-                justify-content: flex-start;
-                padding: 0.9rem 1.2rem;
-            }
-
-            .panel-chats {
-                z-index: 3;
+                border-right: none;
             }
 
             .panel-conversation {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100% !important;
+                min-width: 100% !important;
+                height: 100%;
                 z-index: 4;
+                transform: translateX(100%);
+                visibility: hidden;
+                pointer-events: none;
+                transition: transform 0.3s ease;
             }
 
-            .panel.slide-active {
+            .panel-conversation.slide-active {
                 transform: translateX(0);
                 visibility: visible;
                 pointer-events: auto;
@@ -298,8 +291,10 @@
 
     <!-- ─── LAYOUT MAIN ─── -->
     <div class="app-layout">
-        @include('partials.panel-accounts')
-        @include('partials.panel-chats')
+        <div class="sidebar-container">
+            @include('partials.panel-accounts')
+            @include('partials.panel-chats')
+        </div>
         @include('partials.panel-conversation')
     </div>
 

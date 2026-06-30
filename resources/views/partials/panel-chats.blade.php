@@ -2,7 +2,7 @@
 <div class="panel panel-chats">
     <div class="panel-header py-3 px-3">
         <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm border-0 d-md-none" onclick="mobileBack('accounts')">
+            <button class="btn btn-outline-secondary btn-sm border-0" onclick="goBack('accounts')">
                 <i class="bi bi-chevron-left"></i>
             </button>
             <h5 class="m-0 fw-bold">Chats</h5>
