@@ -13,7 +13,18 @@ class ChatController extends Controller
 {
     public function index($accountId)
     {
-        $chats = Chat::where('account_id', $accountId)
+        $chats = Chat::select('chats.*')
+            ->where('account_id', $accountId)
+            ->addSelect([
+                'last_message_type' => Message::select('type')
+                    ->whereColumn('chat_id', 'chats.id')
+                    ->latest('id')
+                    ->limit(1),
+                'last_message_id' => Message::select('id')
+                    ->whereColumn('chat_id', 'chats.id')
+                    ->latest('id')
+                    ->limit(1)
+            ])
             ->withCount('messages')
             ->orderBy('updated_at', 'desc')
             ->get();

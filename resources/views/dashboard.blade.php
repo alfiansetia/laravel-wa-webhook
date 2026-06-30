@@ -146,6 +146,25 @@
             background-color: var(--bs-primary);
         }
 
+        .unread-chat {
+            background-color: rgba(var(--bs-primary-rgb), 0.03);
+        }
+
+        .unread-chat .chat-name {
+            color: var(--bs-emphasis-color) !important;
+            font-weight: 700 !important;
+        }
+
+        .unread-chat .chat-message {
+            color: var(--bs-body-color) !important;
+            font-weight: 600 !important;
+        }
+
+        .unread-chat .chat-time {
+            color: var(--bs-success) !important;
+            font-weight: 600 !important;
+        }
+
         .avatar-circle {
             width: 42px;
             height: 42px;

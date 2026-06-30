@@ -8,6 +8,7 @@
     window.__isLoadingOlderMessages = false;
     let activeAccountIdForChat = null;
     window.__quotedMessageId = null;
+    window.__readMessageIds = new Set();
 
     // ─── THEME CONTROLLER ───
     function getSavedTheme() {
@@ -348,25 +349,42 @@
                 return;
             }
 
-            container.innerHTML = chats.map(chat => `
-                <div class="list-item ${window.__activeChatId == chat.id ? 'active' : ''}" data-chat-id="${chat.chat_id}" onclick="selectChat(${chat.id}, this)">
-                    <div class="avatar-circle" style="background: ${getAvatarColor(chat.user_name)}; width:38px; height:38px; font-size:0.95rem;">
-                        ${getInitials(chat.user_name)}
-                    </div>
-                    <div class="flex-grow-1 min-width-0">
-                        <div class="d-flex justify-content-between align-items-center gap-1">
-                            <span class="fw-semibold text-truncate small d-block flex-grow-1" style="max-width: 155px;">${chat.user_name}</span>
-                            <span class="text-muted flex-shrink-0" style="font-size:0.7rem;">${formatRelative(chat.updated_at)}</span>
+            container.innerHTML = chats.map(chat => {
+                // If it is the currently active chat, automatically mark its last message as read
+                if (window.__activeChatId == chat.id && chat.last_message_id) {
+                    window.__readMessageIds.add(chat.last_message_id);
+                }
+
+                // Determine if chat is unread
+                const isUnread = chat.last_message_type === 'in' &&
+                    window.__activeChatId != chat.id &&
+                    !window.__readMessageIds.has(chat.last_message_id);
+
+                return `
+                    <div class="list-item ${window.__activeChatId == chat.id ? 'active' : ''} ${isUnread ? 'unread-chat' : ''}" 
+                        data-chat-id="${chat.chat_id}" 
+                        onclick="if (${chat.last_message_id}) { window.__readMessageIds.add(${chat.last_message_id}); } selectChat(${chat.id}, this)">
+                        <div class="avatar-circle" style="background: ${getAvatarColor(chat.user_name)}; width:38px; height:38px; font-size:0.95rem;">
+                            ${getInitials(chat.user_name)}
                         </div>
-                        <div class="text-muted text-truncate d-block" style="font-size:0.75rem; max-width: 220px;">${chat.last_message || '[No message text]'}</div>
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="d-flex justify-content-between align-items-center gap-1">
+                                <span class="chat-name fw-semibold text-truncate small d-block flex-grow-1" style="max-width: 155px;">${chat.user_name}</span>
+                                <span class="chat-time text-muted flex-shrink-0" style="font-size:0.7rem;">${formatRelative(chat.updated_at)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center gap-1">
+                                <div class="chat-message text-muted text-truncate d-block" style="font-size:0.75rem; max-width: 200px;">${chat.last_message || '[No message text]'}</div>
+                                ${isUnread ? `<span class="unread-dot bg-success rounded-circle flex-shrink-0" style="width: 8px; height: 8px; margin-left: auto;"></span>` : ''}
+                            </div>
+                        </div>
+                        <div class="item-actions ms-2">
+                            <button type="button" class="btn btn-outline-danger border-0 p-1 btn-sm" title="Delete Chat" onclick="event.stopPropagation(); deleteChat(${chat.id})">
+                                <i class="bi bi-trash" style="font-size: 0.8rem;"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="item-actions ms-2">
-                        <button type="button" class="btn btn-outline-danger border-0 p-1 btn-sm" title="Delete Chat" onclick="event.stopPropagation(); deleteChat(${chat.id})">
-                            <i class="bi bi-trash" style="font-size: 0.8rem;"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
         } catch (err) {
             console.error(err);
@@ -533,7 +551,7 @@
                     }
                 }
                 const senderName = raw?.payload?._data?.pushName || raw?.payload?._data?.notifyName ||
-                'Unknown';
+                    'Unknown';
                 const senderColor = getAvatarColor(senderName);
                 senderLabel =
                     `<div class="fw-bold mb-1" style="font-size: 0.72rem; color: ${senderColor};">${escapeHtml(senderName)}</div>`;
