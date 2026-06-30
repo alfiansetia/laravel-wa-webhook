@@ -103,6 +103,24 @@ class MessageController extends Controller
 
         $text = $request->input('text');
 
+        // WAHA NOWEB tidak bisa kirim ke @lid address.
+        // Gunakan chat_id_alt (@s.whatsapp.net) sebagai fallback jika ada.
+        // Jika ini adalah room Status (dimulai dengan status_), arahkan ke nomor asli pemilik status (chat_id_alt).
+        $targetChatId = $chat->chat_id;
+        if (str_starts_with($targetChatId, 'status_') && !empty($chat->chat_id_alt)) {
+            $targetChatId = $chat->chat_id_alt;
+            Log::info('Redirecting status reply to contact JID', [
+                'status_chat_id' => $chat->chat_id,
+                'target_contact' => $targetChatId,
+            ]);
+        } elseif (str_ends_with($targetChatId, '@lid') && !empty($chat->chat_id_alt)) {
+            $targetChatId = $chat->chat_id_alt;
+            Log::info('Using chat_id_alt for @lid contact', [
+                'original' => $chat->chat_id,
+                'fallback' => $targetChatId,
+            ]);
+        }
+
         try {
             $headers = [];
             if ($apiKey) {
@@ -112,14 +130,14 @@ class MessageController extends Controller
 
             Log::info('Sending message to WAHA', [
                 'url' => rtrim($baseUrl, '/') . '/api/sendText',
-                'chatId' => $chat->chat_id,
+                'chatId' => $targetChatId,
                 'session' => $session
             ]);
 
             $response = Http::withHeaders($headers)
                 ->timeout(10)
                 ->post(rtrim($baseUrl, '/') . '/api/sendText', [
-                    'chatId' => $chat->chat_id,
+                    'chatId' => $targetChatId,
                     'text' => $text,
                     'session' => $session,
                 ]);
