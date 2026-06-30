@@ -239,6 +239,7 @@
         @media (max-width: 768px) {
             .app-layout {
                 position: relative;
+                overflow: hidden;
             }
 
             .panel {
@@ -250,11 +251,15 @@
                 height: 100%;
                 z-index: 1;
                 transform: translateX(100%);
+                visibility: hidden;
+                pointer-events: none;
             }
 
             .panel-accounts {
                 transform: translateX(0);
                 z-index: 2;
+                visibility: visible;
+                pointer-events: auto;
             }
 
             .panel-accounts .panel-header h5,
@@ -280,6 +285,8 @@
 
             .panel.slide-active {
                 transform: translateX(0);
+                visibility: visible;
+                pointer-events: auto;
             }
         }
     </style>
