@@ -7,6 +7,7 @@
     window.__hasMoreMessages = false;
     window.__isLoadingOlderMessages = false;
     let activeAccountIdForChat = null;
+    window.__quotedMessageId = null;
 
     // ─── THEME CONTROLLER ───
     function getSavedTheme() {
@@ -111,11 +112,11 @@
                         ${getInitials(acc.name)}
                     </div>
                     <div class="item-details flex-grow-1 min-width-0">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold text-truncate small">${acc.name}</span>
-                            <span class="badge ${acc.status === 'active' ? 'bg-success' : 'bg-danger'} rounded-circle p-1" style="width:7px; height:7px;"></span>
+                        <div class="d-flex justify-content-between align-items-center gap-1">
+                            <span class="fw-semibold text-truncate small d-block flex-grow-1" style="max-width: 140px;">${acc.name}</span>
+                            <span class="badge ${acc.status === 'active' ? 'bg-success' : 'bg-danger'} rounded-circle p-1 flex-shrink-0" style="width:7px; height:7px;"></span>
                         </div>
-                        <div class="text-muted text-truncate" style="font-size:0.75rem;">Session: ${acc.waha_session_id}</div>
+                        <div class="text-muted text-truncate d-block" style="font-size:0.75rem; max-width: 190px;">Session: ${acc.waha_session_id}</div>
                     </div>
                     <div class="item-actions d-flex gap-1">
                         <button type="button" class="btn btn-outline-secondary border-0 p-1 btn-sm" onclick="event.stopPropagation(); editAccount(${JSON.stringify(acc).replace(/"/g, '&quot;')})">
@@ -297,8 +298,11 @@
                     <h5>No Active Chat</h5>
                     <p class="small">Select a conversation to reply or view chat log.</p>
                 </div>`;
+            cancelQuoteReply();
             return;
         }
+
+        cancelQuoteReply();
 
         window.__activeAccountId = accountId;
         window.__activeChatId = null;
@@ -350,11 +354,11 @@
                         ${getInitials(chat.user_name)}
                     </div>
                     <div class="flex-grow-1 min-width-0">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold text-truncate small">${chat.user_name}</span>
-                            <span class="text-muted" style="font-size:0.7rem;">${formatRelative(chat.updated_at)}</span>
+                        <div class="d-flex justify-content-between align-items-center gap-1">
+                            <span class="fw-semibold text-truncate small d-block flex-grow-1" style="max-width: 155px;">${chat.user_name}</span>
+                            <span class="text-muted flex-shrink-0" style="font-size:0.7rem;">${formatRelative(chat.updated_at)}</span>
                         </div>
-                        <div class="text-muted text-truncate" style="font-size:0.75rem;">${chat.last_message || '[No message text]'}</div>
+                        <div class="text-muted text-truncate d-block" style="font-size:0.75rem; max-width: 220px;">${chat.last_message || '[No message text]'}</div>
                     </div>
                     <div class="item-actions ms-2">
                         <button type="button" class="btn btn-outline-danger border-0 p-1 btn-sm" title="Delete Chat" onclick="event.stopPropagation(); deleteChat(${chat.id})">
@@ -370,6 +374,7 @@
     }
 
     function selectChat(chatId, el) {
+        cancelQuoteReply();
         window.__activeChatId = chatId;
         document.querySelectorAll('.panel-chats .list-item').forEach(i => i.classList.remove('active'));
         el?.classList.add('active');
@@ -516,18 +521,28 @@
             html += `
                 <div class="d-flex align-items-center gap-2 ${isOut ? 'justify-content-end' : 'justify-content-start'} msg-row">
                     ${isOut ? `
-                        <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                            <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                        </button>
+                        <div class="msg-actions opacity-0">
+                            <button type="button" class="btn btn-link text-secondary p-0 border-0" title="Reply Message" onclick="initiateQuoteReply(${msg.id})">
+                                <i class="bi bi-reply-fill" style="font-size:0.85rem;"></i>
+                            </button>
+                            <button type="button" class="btn btn-link text-danger p-0 border-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                            </button>
+                        </div>
                     ` : ''}
                     <div class="msg-bubble ${isOut ? 'msg-outgoing' : 'msg-incoming'}">
                         ${renderMessageBody(msg)}
                         <div class="msg-time">${formatHour(msg.created_at)}</div>
                     </div>
                     ${!isOut ? `
-                        <button type="button" class="btn btn-link text-danger p-0 border-0 msg-delete-btn opacity-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
-                            <i class="bi bi-trash" style="font-size:0.75rem;"></i>
-                        </button>
+                        <div class="msg-actions opacity-0">
+                            <button type="button" class="btn btn-link text-secondary p-0 border-0" title="Reply Message" onclick="initiateQuoteReply(${msg.id})">
+                                <i class="bi bi-reply-fill" style="font-size:0.85rem;"></i>
+                            </button>
+                            <button type="button" class="btn btn-link text-danger p-0 border-0" title="Delete Message" onclick="deleteMessage(${msg.id})">
+                                <i class="bi bi-trash" style="font-size:0.75rem;"></i>
+                            </button>
+                        </div>
                     ` : ''}
                 </div>`;
         });
@@ -547,24 +562,30 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
         btn.disabled = true;
 
+        const payload = {
+            text: text
+        };
+        if (window.__quotedMessageId) {
+            payload.reply_to = window.__quotedMessageId;
+        }
+
         try {
             const res = await fetch(`/api/chats/${window.__activeChatId}/send`, {
                 method: 'POST',
                 headers: headers(),
-                body: JSON.stringify({
-                    text: text
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
             if (data.status === 'success') {
                 input.value = '';
+                cancelQuoteReply();
                 // Wait for webhook or single fetch if instant representation is needed.
                 // We will let the poller capture it, or retrieve immediately to show fast:
                 pollNewMessages();
                 loadChats(window.__activeAccountId);
             } else {
-                alert('Sending error (check configuration of base URL): ' + (data.message || 'API failed'));
+                alert('Sending error: ' + (data.message || 'API failed'));
             }
         } catch (err) {
             alert('Send Request Fail: ' + err.message);
@@ -600,10 +621,62 @@
             }
         }
 
+        let quotedTextHtml = '';
+        if (raw) {
+            const payload = raw.payload || raw;
+            const quotedMsg = payload.replyTo || payload.quotedMsg || (payload._data && (payload._data.replyTo ||
+                payload._data.quotedMsg)) || raw.replyTo || raw.quotedMsg || (raw._data && (raw._data.replyTo || raw
+                ._data.quotedMsg)) || null;
+            if (quotedMsg) {
+                const quotedText = quotedMsg.body || '[Media/File]';
+
+                // Determine sender name elegantly
+                let quotedSender = quotedMsg.pushName || quotedMsg.notifyName;
+                if (!quotedSender) {
+                    if (quotedMsg.participant) {
+                        const cleanPart = quotedMsg.participant.replace(/@.*$/, '');
+                        const currContactMeta = document.getElementById('conv-meta')?.textContent || '';
+                        const cleanCurr = currContactMeta.replace(/@.*$/, '');
+
+                        if (cleanPart === cleanCurr) {
+                            quotedSender = document.getElementById('conv-name')?.textContent || 'Contact';
+                        } else {
+                            quotedSender = 'Me';
+                        }
+                    } else {
+                        quotedSender = (quotedMsg.id && typeof quotedMsg.id === 'object' && quotedMsg.id.fromMe) ?
+                            'Me' : 'Contact';
+                    }
+                }
+
+                const isOut = msg.type === 'out';
+
+                if (isOut) {
+                    // Outgoing message (blue bubble): use white accents
+                    quotedTextHtml = `
+                        <div class="quoted-msg-bubble mb-2 py-1 px-2 rounded border-start border-3 text-white" style="background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.8) !important; font-size:0.75rem; opacity: 0.95; max-width: 100%;">
+                            <div class="fw-bold small mb-0" style="color: rgba(255, 255, 255, 0.95);">${escapeHtml(quotedSender)}</div>
+                            <div class="text-truncate small" style="color: rgba(255, 255, 255, 0.75); font-size: 0.72rem;">${escapeHtml(quotedText)}</div>
+                        </div>
+                    `;
+                } else {
+                    // Incoming message (gray/black bubble): use blue/mute theme accents
+                    quotedTextHtml = `
+                        <div class="quoted-msg-bubble mb-2 py-1 px-2 rounded border-start border-primary border-3 bg-secondary-subtle" style="font-size:0.75rem; opacity: 0.95; max-width: 100%;">
+                            <div class="fw-bold text-primary small mb-0">${escapeHtml(quotedSender)}</div>
+                            <div class="text-truncate text-secondary" style="font-size: 0.72rem;">${escapeHtml(quotedText)}</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
         const getProxyUrl = (url) => {
             if (!url) return '';
             return `/api/media?account_id=${window.__activeAccountId}&url=${encodeURIComponent(url)}`;
         };
+
+        let bodyContent = `<div>${escapeHtml(bodyText)}</div>`;
 
         if (raw && raw.payload) {
             const payload = raw.payload;
@@ -624,7 +697,7 @@
                 const caption = payload.caption || payload.body || '';
                 const displayCaption = (caption && !caption.startsWith('/9j/') && caption.length < 500) ? caption : '';
                 if (mediaUrl) {
-                    return `
+                    bodyContent = `
                         <div class="mb-2 text-center" style="max-width: 280px;">
                             <img src="${mediaUrl}" class="img-fluid rounded border border-light-subtle shadow-sm my-1" style="max-height: 200px; cursor: pointer; object-fit: cover;" onclick="window.open('${mediaUrl}', '_blank')" alt="Image">
                         </div>
@@ -637,7 +710,7 @@
             if (type === 'sticker') {
                 const mediaUrl = payload.media ? getProxyUrl(payload.media.url) : null;
                 if (mediaUrl) {
-                    return `
+                    bodyContent = `
                         <div class="text-center" style="max-width: 130px; background: transparent;">
                             <img src="${mediaUrl}" class="img-fluid rounded my-1" style="max-height: 130px; object-fit: contain;" alt="Sticker">
                         </div>
@@ -650,7 +723,7 @@
                 const mediaUrl = payload.media ? getProxyUrl(payload.media.url) : null;
                 const fileName = payload.filename || (payload._data && payload._data.filename) || 'Received File';
                 if (mediaUrl) {
-                    return `
+                    bodyContent = `
                         <div class="d-flex align-items-center gap-2 p-2 bg-body-tertiary rounded border border-secondary-subtle" style="max-width: 280px;">
                             <div class="fs-2 text-secondary"><i class="bi bi-file-earmark-arrow-down-fill"></i></div>
                             <div class="min-width-0 flex-grow-1">
@@ -668,7 +741,7 @@
             if (type === 'audio' || type === 'voice' || type === 'ptt') {
                 const mediaUrl = payload.media ? getProxyUrl(payload.media.url) : null;
                 if (mediaUrl) {
-                    return `
+                    bodyContent = `
                         <div class="my-1 d-block" style="width: 260px; max-width: 100%;">
                             <audio controls class="w-100" style="height: 36px;">
                                 <source src="${mediaUrl}" type="${payload.media.mimetype || 'audio/ogg'}">
@@ -684,7 +757,7 @@
                 const lat = parseFloat(payload.lat || (payload.location && payload.location.latitude));
                 const lng = parseFloat(payload.lng || (payload.location && payload.location.longitude));
                 if (!isNaN(lat) && !isNaN(lng)) {
-                    return `
+                    bodyContent = `
                         <div class="d-flex align-items-center gap-2 p-2 bg-body-tertiary rounded border border-secondary-subtle" style="max-width: 260px;">
                             <div class="fs-3 text-danger"><i class="bi bi-geo-alt-fill"></i></div>
                             <div>
@@ -700,7 +773,37 @@
             }
         }
 
-        return `<div>${escapeHtml(bodyText)}</div>`;
+        return quotedTextHtml + bodyContent;
+    }
+
+    function initiateQuoteReply(msgId) {
+        const msg = window.__activeMessages.find(m => m.id === msgId);
+        if (!msg) return;
+
+        window.__quotedMessageId = msg.message_id;
+
+        let senderName = 'Contact';
+        if (msg.type === 'out') {
+            senderName = 'Me';
+        } else {
+            const chatHeaderName = document.getElementById('conv-name').textContent;
+            senderName = chatHeaderName || 'Contact';
+        }
+
+        const previewText = msg.body || '[Media/Location]';
+        document.getElementById('quote-preview-sender').textContent = `Balas ke: ${senderName}`;
+        document.getElementById('quote-preview-text').textContent = previewText;
+
+        const container = document.getElementById('quote-preview-container');
+        container.style.setProperty('display', 'flex', 'important');
+
+        document.getElementById('reply-text').focus();
+    }
+
+    function cancelQuoteReply() {
+        window.__quotedMessageId = null;
+        const container = document.getElementById('quote-preview-container');
+        container.setAttribute('style', 'display: none !important;');
     }
 
     function escapeHtml(str) {

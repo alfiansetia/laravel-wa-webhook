@@ -226,17 +226,16 @@
             align-self: center;
         }
 
-        .msg-row:hover .msg-delete-btn {
+        .msg-row:hover .msg-actions {
             opacity: 1 !important;
         }
 
-        .msg-delete-btn {
+        .msg-actions {
             transition: opacity 0.15s ease-in-out;
-            width: 24px;
-            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
         }
 
         .chat-input-area {

@@ -32,6 +32,9 @@ class MessageController extends Controller
             ]);
         }
 
+        // Standard load - mark as seen
+        $this->markAsSeen($chat);
+
         // Standard load or legacy message scrolling.
         $query = Message::where('chat_id', $chatId);
 
@@ -65,6 +68,7 @@ class MessageController extends Controller
     {
         $request->validate([
             'text' => 'required|string',
+            'reply_to' => 'nullable|string',
         ]);
 
         $chat = Chat::with('account')->findOrFail($chatId);
@@ -111,6 +115,7 @@ class MessageController extends Controller
         }
 
         $text = $request->input('text');
+        $replyTo = $request->input('reply_to');
 
         // WAHA NOWEB tidak bisa kirim ke @lid address.
         // Gunakan chat_id_alt (@s.whatsapp.net) sebagai fallback jika ada.
@@ -140,16 +145,23 @@ class MessageController extends Controller
             Log::info('Sending message to WAHA', [
                 'url' => rtrim($baseUrl, '/') . '/api/sendText',
                 'chatId' => $targetChatId,
-                'session' => $session
+                'session' => $session,
+                'reply_to' => $replyTo
             ]);
+
+            $postData = [
+                'chatId' => $targetChatId,
+                'text' => $text,
+                'session' => $session,
+            ];
+
+            if (!empty($replyTo)) {
+                $postData['reply_to'] = $replyTo;
+            }
 
             $response = Http::withHeaders($headers)
                 ->timeout(10)
-                ->post(rtrim($baseUrl, '/') . '/api/sendText', [
-                    'chatId' => $targetChatId,
-                    'text' => $text,
-                    'session' => $session,
-                ]);
+                ->post(rtrim($baseUrl, '/') . '/api/sendText', $postData);
 
             if ($response->failed()) {
                 Log::error('WAHA sendText failed', [
@@ -164,6 +176,9 @@ class MessageController extends Controller
 
             // Update chat preview with the sent message
             $chat->update(['last_message' => $text]);
+
+            // Mark as seen
+            $this->markAsSeen($chat);
 
             return response()->json([
                 'status' => 'success',
@@ -233,6 +248,58 @@ class MessageController extends Controller
         } catch (\Exception $e) {
             Log::error('Media Proxy Exception', ['error' => $e->getMessage()]);
             return response('Error: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Mark all unread messages as read in WAHA instance
+     */
+    private function markAsSeen(Chat $chat)
+    {
+        $account = $chat->account;
+        if (!$account || empty($account->waha_session_id) || empty($account->base_url)) {
+            return;
+        }
+
+        $session = $account->waha_session_id;
+        $baseUrl = $account->base_url;
+        $apiKey = $account->api_key;
+
+        // Skip newsletters/channels which are read-only and don't support sendSeen.
+        if (str_ends_with($chat->chat_id, '@newsletter')) {
+            return;
+        }
+
+        // Handle @lid fallback / status redirects similar to sendText
+        $targetChatId = $chat->chat_id;
+        if (str_starts_with($targetChatId, 'status_') && !empty($chat->chat_id_alt)) {
+            $targetChatId = $chat->chat_id_alt;
+        } elseif (str_ends_with($targetChatId, '@lid') && !empty($chat->chat_id_alt)) {
+            $targetChatId = $chat->chat_id_alt;
+        }
+
+        try {
+            $headers = [];
+            if ($apiKey) {
+                $headers['X-Api-Key'] = $apiKey;
+                $headers['Authorization'] = 'Bearer ' . $apiKey;
+            }
+
+            Http::withHeaders($headers)
+                ->timeout(5)
+                ->post(rtrim($baseUrl, '/') . '/api/sendSeen', [
+                    'chatId' => $targetChatId,
+                    'session' => $session,
+                ]);
+
+            Log::info('Sent sendSeen to WAHA', [
+                'chatId' => $targetChatId,
+                'session' => $session
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Failed to mark chat as seen in WAHA', [
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }

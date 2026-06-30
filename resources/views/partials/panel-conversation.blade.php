@@ -36,6 +36,20 @@
 
     <!-- Send Message Input Area -->
     <div class="chat-input-area" id="reply-box" style="display:none;">
+        <!-- Quote Preview Container -->
+        <div id="quote-preview-container"
+            class="pb-2 pt-1 px-3 mb-2 bg-secondary-subtle rounded border-start border-primary border-4 d-flex align-items-center justify-content-between"
+            style="display: none !important; transition: all 0.2s ease;">
+            <div class="min-width-0 flex-grow-1">
+                <div class="small fw-semibold text-primary" id="quote-preview-sender">Replying to message</div>
+                <div class="small text-muted text-truncate" id="quote-preview-text">—</div>
+            </div>
+            <button type="button" class="btn btn-link text-secondary p-0 border-0 ms-2" onclick="cancelQuoteReply()"
+                title="Cancel Reply">
+                <i class="bi bi-x-circle-fill" style="font-size: 1.1rem;"></i>
+            </button>
+        </div>
+
         <form id="send-message-form" onsubmit="handleSend(event)" class="d-flex gap-2">
             <input type="text" class="form-control rounded-pill border-0" id="reply-text"
                 placeholder="Type a message..." autocomplete="off">
