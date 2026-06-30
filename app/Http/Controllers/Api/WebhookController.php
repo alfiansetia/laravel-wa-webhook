@@ -193,7 +193,12 @@ class WebhookController extends Controller
 
             // Determine the participant name (the other person in the chat)
             // NOWEB engine uses 'pushName', WEBJS uses 'notifyName'
-            $pushName = $payload['_data']['pushName'] ?? $payload['_data']['notifyName'] ?? null;
+            $pushName = $payload['_data']['pushName'] ?? $payload['_data']['notifyName'] ?? $payload['_data']['verifiedBizName'] ?? null;
+
+            // Beri label yang bagus jika ini adalah Newsletter/Channel dan pushName kosong
+            if (str_ends_with($chatId, '@newsletter') && empty($pushName)) {
+                $pushName = 'Channel/Newsletter (' . substr(explode('@', $chatId)[0], 0, 8) . '...)';
+            }
 
             if (!$isFromMe) {
                 $participantName = $pushName ?? ($existingChat?->user_name) ?? $chatId;

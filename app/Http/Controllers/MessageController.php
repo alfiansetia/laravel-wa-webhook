@@ -68,6 +68,15 @@ class MessageController extends Controller
         ]);
 
         $chat = Chat::with('account')->findOrFail($chatId);
+
+        // Cegah membalas pesan di room channel/newsletter
+        if (str_ends_with($chat->chat_id, '@newsletter')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Saluran / Newsletter bersifat satu arah. Anda tidak bisa mengirim pesan balasan ke sini.',
+            ], 400);
+        }
+
         $account = $chat->account;
 
         if (!$account) {
