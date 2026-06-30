@@ -10,6 +10,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- Plyr Video Player CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -165,6 +167,13 @@
             font-weight: 600 !important;
         }
 
+        .msg-bubble .plyr {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--bs-border-color);
+            --plyr-color-main: var(--bs-primary);
+        }
+
         .avatar-circle {
             width: 42px;
             height: 42px;
@@ -316,11 +325,40 @@
         @include('partials.panel-conversation')
     </div>
 
+    <!-- ─── MEDIA PREVIEW MODAL ─── -->
+    <div class="modal fade" id="mediaPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-0 pb-2 d-flex justify-content-between align-items-center px-4 pt-3">
+                    <a id="preview-download-btn" href="" download
+                        class="btn btn-outline-light btn-sm fw-semibold" target="_blank">
+                        <i class="bi bi-download me-1"></i> Unduh
+                    </a>
+                    <button type="button" class="btn-close btn-close-white m-0" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-4 pt-0">
+                    <img id="preview-image" src="" class="img-fluid rounded d-none"
+                        style="max-height: 75vh; max-width: 100%; object-fit: contain;" alt="Image Preview">
+                    <div id="preview-video-container" class="d-none">
+                        <video id="preview-video" controls class="w-100 rounded" style="max-height: 75vh;">
+                            <source src="" type="">
+                            Browser Anda tidak mendukung pemutar video.
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @include('partials.modal-account')
     @include('partials.modal-create-chat')
 
     <!-- Bootstrap Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Plyr Video Player JS -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 
     @include('partials.scripts')
 </body>

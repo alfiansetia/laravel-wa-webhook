@@ -241,6 +241,18 @@ class WebhookController extends Controller
 
         // Determine cleaner body content for database and chat list preview
         $msgType = $payload['type'] ?? $payload['_data']['type'] ?? null;
+
+        if (isset($payload['media'])) {
+            $media = $payload['media'];
+            $mime = $media['mimetype'] ?? '';
+            $url = $media['url'] ?? '';
+            if (str_starts_with($mime, 'video/') || str_contains(strtolower($url), '.mp4')) {
+                $msgType = 'video';
+            } elseif (str_starts_with($mime, 'image/')) {
+                $msgType = 'image';
+            }
+        }
+
         if (!$msgType) {
             if (!empty($payload['location'])) {
                 $msgType = 'location';

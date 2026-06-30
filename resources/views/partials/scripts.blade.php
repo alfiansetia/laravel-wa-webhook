@@ -588,6 +588,13 @@
         });
 
         container.innerHTML = html;
+
+        // Initialize Plyr for video elements if Plyr is loaded
+        if (typeof Plyr !== 'undefined') {
+            Plyr.setup(container.querySelectorAll('video'), {
+                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen']
+            });
+        }
     }
 
     // Send Text message via SaaS route endpoint
@@ -721,6 +728,15 @@
         if (raw && raw.payload) {
             const payload = raw.payload;
             let type = payload.type || (payload._data && payload._data.type) || null;
+            if (payload.media) {
+                const mime = payload.media.mimetype || '';
+                const url = payload.media.url || '';
+                if (mime.startsWith('video/') || url.toLowerCase().includes('.mp4')) {
+                    type = 'video';
+                } else if (mime.startsWith('image/')) {
+                    type = 'image';
+                }
+            }
             if (!type) {
                 if (payload.location) {
                     type = 'location';
@@ -739,7 +755,38 @@
                 if (mediaUrl) {
                     bodyContent = `
                         <div class="mb-2 text-center" style="max-width: 280px;">
-                            <img src="${mediaUrl}" class="img-fluid rounded border border-light-subtle shadow-sm my-1" style="max-height: 200px; cursor: pointer; object-fit: cover;" onclick="window.open('${mediaUrl}', '_blank')" alt="Image">
+                            <img src="${mediaUrl}" class="img-fluid rounded border border-light-subtle shadow-sm my-1 mb-2" style="max-height: 200px; cursor: pointer; object-fit: cover;" onclick="window.openMediaPreview('${mediaUrl}', 'image')" alt="Image">
+                            <div class="text-start px-1">
+                                <a href="${mediaUrl}" download="image_${Date.now()}.jpg" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-semibold" style="font-size: 0.72rem; text-decoration: none;">
+                                    <i class="bi bi-download me-1"></i> Unduh Gambar
+                                </a>
+                            </div>
+                        </div>
+                        ${displayCaption ? `<div class="mt-1">${escapeHtml(displayCaption)}</div>` : ''}
+                    `;
+                }
+            }
+
+            // Handle Video media URL
+            if (type === 'video') {
+                const mediaUrl = payload.media ? getProxyUrl(payload.media.url) : null;
+                const caption = payload.caption || payload.body || '';
+                const displayCaption = (caption && !caption.startsWith('/9j/') && caption.length < 500) ? caption : '';
+                if (mediaUrl) {
+                    bodyContent = `
+                        <div class="mb-2 text-center" style="max-width: 280px; width: 280px;">
+                            <video controls class="img-fluid rounded border border-light-subtle shadow-sm my-1 w-100 mb-2" style="max-height: 220px; object-fit: cover;">
+                                <source src="${mediaUrl}" type="${payload.media.mimetype || 'video/mp4'}">
+                                Browser Anda tidak mendukung pemutar video.
+                            </video>
+                            <div class="text-start px-1 d-flex gap-2">
+                                <button type="button" onclick="window.openMediaPreview('${mediaUrl}', 'video', '${payload.media.mimetype || 'video/mp4'}')" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-semibold" style="font-size: 0.72rem;">
+                                    <i class="bi bi-arrows-angle-expand me-1"></i> Perbesar
+                                </button>
+                                <a href="${mediaUrl}" download="video_${Date.now()}.mp4" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-semibold" style="font-size: 0.72rem; text-decoration: none;">
+                                    <i class="bi bi-download me-1"></i> Unduh Video
+                                </a>
+                            </div>
                         </div>
                         ${displayCaption ? `<div class="mt-1">${escapeHtml(displayCaption)}</div>` : ''}
                     `;
@@ -957,6 +1004,63 @@
             btn.disabled = false;
         }
     }
+
+    let previewModalInstance = null;
+    let previewPlyrInstance = null;
+
+    window.openMediaPreview = function(url, type, mimeType) {
+        if (!previewModalInstance) {
+            previewModalInstance = new bootstrap.Modal(document.getElementById('mediaPreviewModal'));
+
+            // Cleanup resources when modal is closed
+            document.getElementById('mediaPreviewModal').addEventListener('hidden.bs.modal', function() {
+                const vid = document.getElementById('preview-video');
+                vid.pause();
+                vid.src = "";
+                vid.load();
+                if (previewPlyrInstance) {
+                    previewPlyrInstance.destroy();
+                    previewPlyrInstance = null;
+                }
+            });
+        }
+
+        const imgEl = document.getElementById('preview-image');
+        const videoContainer = document.getElementById('preview-video-container');
+        const videoEl = document.getElementById('preview-video');
+
+        imgEl.classList.add('d-none');
+        videoContainer.classList.add('d-none');
+
+        const downloadBtn = document.getElementById('preview-download-btn');
+        if (downloadBtn) {
+            downloadBtn.href = url;
+            const ext = type === 'video' ? 'mp4' : 'jpg';
+            downloadBtn.download = `media_${Date.now()}.${ext}`;
+        }
+
+        if (type === 'image') {
+            imgEl.src = url;
+            imgEl.classList.remove('d-none');
+        } else if (type === 'video') {
+            videoEl.src = url;
+            if (mimeType) {
+                videoEl.querySelectorAll('source')[0].type = mimeType;
+            }
+            videoContainer.classList.remove('d-none');
+            videoEl.load();
+
+            if (typeof Plyr !== 'undefined') {
+                previewPlyrInstance = new Plyr(videoEl, {
+                    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume',
+                        'fullscreen'
+                    ]
+                });
+            }
+        }
+
+        previewModalInstance.show();
+    };
 
     // Core Init
     loadAccounts();

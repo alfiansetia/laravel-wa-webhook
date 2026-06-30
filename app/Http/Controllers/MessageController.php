@@ -224,9 +224,14 @@ class MessageController extends Controller
             $headers['Authorization'] = 'Bearer ' . $account->api_key;
         }
 
+        // Forward Range header if requested by the browser
+        if ($request->hasHeader('Range')) {
+            $headers['Range'] = $request->header('Range');
+        }
+
         try {
             $response = Http::withHeaders($headers)
-                ->timeout(20)
+                ->timeout(240) // Allow longer timeout for large media buffering
                 ->get($url);
 
             if ($response->failed()) {
@@ -238,10 +243,24 @@ class MessageController extends Controller
             }
 
             $contentType = $response->header('Content-Type') ?? 'application/octet-stream';
+            $status = $response->status();
 
-            return response($response->body(), 200)
+            $res = response($response->body(), $status)
                 ->header('Content-Type', $contentType)
                 ->header('Cache-Control', 'public, max-age=86400');
+
+            // Forward content range and accept range headers for video buffering/seeking
+            if ($response->header('Content-Range')) {
+                $res->header('Content-Range', $response->header('Content-Range'));
+            }
+            if ($response->header('Accept-Ranges')) {
+                $res->header('Accept-Ranges', $response->header('Accept-Ranges'));
+            }
+            if ($response->header('Content-Length')) {
+                $res->header('Content-Length', $response->header('Content-Length'));
+            }
+
+            return $res;
         } catch (\Exception $e) {
             Log::error('Media Proxy Exception', ['error' => $e->getMessage()]);
             return response('Error: ' . $e->getMessage(), 500);
