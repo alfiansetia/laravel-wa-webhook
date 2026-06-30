@@ -946,6 +946,8 @@
     }, 6000);
 
     // ─── CREATE NEW CHAT MODAL ACTIONS ───
+    const createChatModal = new bootstrap.Modal(document.getElementById('createChatModal'));
+
     function openCreateChatModal() {
         if (!window.__activeAccountId) {
             alert('Please select an account first from the left panel.');
