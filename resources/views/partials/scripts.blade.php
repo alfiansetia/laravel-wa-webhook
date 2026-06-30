@@ -518,6 +518,27 @@
             }
 
             const isOut = msg.type === 'out';
+
+            // For group chats: show sender name on incoming messages
+            let senderLabel = '';
+            const convMeta = document.getElementById('conv-meta')?.textContent || '';
+            const isGroup = convMeta.includes('@g.us');
+            if (isGroup && !isOut) {
+                let raw = msg.raw_data;
+                if (typeof raw === 'string') {
+                    try {
+                        raw = JSON.parse(raw);
+                    } catch (e) {
+                        raw = null;
+                    }
+                }
+                const senderName = raw?.payload?._data?.pushName || raw?.payload?._data?.notifyName ||
+                'Unknown';
+                const senderColor = getAvatarColor(senderName);
+                senderLabel =
+                    `<div class="fw-bold mb-1" style="font-size: 0.72rem; color: ${senderColor};">${escapeHtml(senderName)}</div>`;
+            }
+
             html += `
                 <div class="d-flex align-items-center gap-2 ${isOut ? 'justify-content-end' : 'justify-content-start'} msg-row">
                     ${isOut ? `
@@ -531,6 +552,7 @@
                         </div>
                     ` : ''}
                     <div class="msg-bubble ${isOut ? 'msg-outgoing' : 'msg-incoming'}">
+                        ${senderLabel}
                         ${renderMessageBody(msg)}
                         <div class="msg-time">${formatHour(msg.created_at)}</div>
                     </div>

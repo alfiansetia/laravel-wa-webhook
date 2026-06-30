@@ -195,15 +195,23 @@ class WebhookController extends Controller
             // NOWEB engine uses 'pushName', WEBJS uses 'notifyName'
             $pushName = $payload['_data']['pushName'] ?? $payload['_data']['notifyName'] ?? $payload['_data']['verifiedBizName'] ?? null;
 
+            // Detect group chat
+            $isGroupChat = str_ends_with($chatId, '@g.us');
+
             // Beri label yang bagus jika ini adalah Newsletter/Channel dan pushName kosong
             if (str_ends_with($chatId, '@newsletter') && empty($pushName)) {
                 $pushName = 'Channel/Newsletter (' . substr(explode('@', $chatId)[0], 0, 8) . '...)';
             }
 
-            if (!$isFromMe) {
+            // Determine participant name for chat creation
+            if ($isGroupChat) {
+                // For groups: use group subject from _data if available, otherwise use chatId
+                $groupSubject = $payload['_data']['subject'] ?? $payload['_data']['groupMetadata']['subject'] ?? null;
+                $participantName = ($existingChat?->user_name) ?? $groupSubject ?? $chatId;
+            } elseif (!$isFromMe) {
                 $participantName = $pushName ?? ($existingChat?->user_name) ?? $chatId;
             } else {
-                // Outgoing: tidak ada pushName — pakai nama dari chat existing jika ada
+                // Outgoing DM: tidak ada pushName — pakai nama dari chat existing jika ada
                 $participantName = ($existingChat?->user_name) ?? $pushName ?? $chatId;
             }
 
@@ -211,8 +219,8 @@ class WebhookController extends Controller
                 // ── Gunakan chat yang sudah ada (hindari duplikat) ──
                 $chat = $existingChat;
 
-                // Update nama jika incoming dan dapat nama baru
-                if (!$isFromMe && $pushName && $chat->user_name !== $pushName) {
+                // Update nama HANYA untuk DM (bukan group), jika incoming dan dapat nama baru
+                if (!$isGroupChat && !$isFromMe && $pushName && $chat->user_name !== $pushName) {
                     $chat->update(['user_name' => $pushName]);
                 }
 
@@ -249,7 +257,7 @@ class WebhookController extends Controller
         } elseif ($msgType === 'location') {
             $messageBody = '📍 Shared Location';
         } else {
-            // Handl media: image, video, sticker, document, audio
+            // Handle media: image, video, sticker, document, audio
             $messageBody = $payload['caption'] ?? $payload['body'] ?? '';
             // If body starts with base64 signatures or is extremely long, clear it to avoid db pollution
             if (str_starts_with($messageBody, '/9j/') || strlen($messageBody) > 1000) {
@@ -260,8 +268,15 @@ class WebhookController extends Controller
             }
         }
 
-        // Update last message preview
-        $chat->update(['last_message' => $messageBody]);
+        // For group chats: prefix last_message with sender name for chat list preview
+        $isGroupChat = str_ends_with($chat->chat_id, '@g.us');
+        if ($isGroupChat) {
+            $senderPrefix = $isFromMe ? 'You' : ($pushName ?? 'Contact');
+            $chat->update(['last_message' => $senderPrefix . ': ' . $messageBody]);
+        } else {
+            // Update last message preview
+            $chat->update(['last_message' => $messageBody]);
+        }
 
         // Store message (use firstOrCreate to prevent duplicates from optimistic UI inserts)
         $messageId = $payload['id'] ?? uniqid();
