@@ -32,9 +32,6 @@ class MessageController extends Controller
             ]);
         }
 
-        // Standard load - mark as seen
-        $this->markAsSeen($chat);
-
         // Standard load or legacy message scrolling.
         $query = Message::where('chat_id', $chatId);
 
